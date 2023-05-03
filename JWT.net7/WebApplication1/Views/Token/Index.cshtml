@@ -1,0 +1,120 @@
+﻿@{
+    ViewData["Title"] = "Token Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome, Token</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>
+        <input type="button" id="loginBtn" value="登录" />
+    </p>
+    <p>
+        <input type="button" id="refreshToken" value="刷新token" />
+    </p>
+    <p>
+        <input type="button" id="autoRefreshToken" value="Auth_Info接口，自动刷新token" />
+    </p>
+
+    <p>
+        <input type="button" id="authInfo" value="Auth_Info接口" />
+    </p>
+</div>
+@section Scripts{
+    <script type="text/javascript">
+        $(function() {
+            $("#loginBtn").on("click",function(){
+                $.ajax({
+                    url:"/Token/Login",
+                    type:"post",
+                    data:{"name":"king","pwd":"123456"},
+                    success:function(data){
+                        if (data.data.token) {
+                            console.log(data);
+                            localStorage["token"] = data.data.token;
+                            localStorage["refreshToken"] = data.data.refreshToken;
+                        }
+                    }
+                });
+            });
+
+            $("#authInfo").on("click", function () {
+                $.ajax({
+                    url: "/Auth/Info",
+                    type: "post",
+                    data: { "name": "king", "pwd": "123456" },
+                    beforeSend:function(XHR)
+                    {
+                        XHR.setRequestHeader("Authorization","Bearer " + localStorage["token"]);
+                    },
+                    success: function (data) {
+                        console.log(data);
+                    }
+                });
+            });
+
+            $("#autoRefreshToken").on("click", function () {
+                $.ajax({
+                    url: "/Auth/Info",
+                    type: "post",
+                    data: { "name": "king", "pwd": "123456" },
+                    beforeSend:function(XHR)
+                    {
+                        XHR.setRequestHeader("Authorization","Bearer " + localStorage["token"]);
+                    },
+                    success: function (data) {
+                        console.log(data);
+                    },
+                    error: function(xhr, status, error){
+                        console.log(status);
+                        console.log(xhr.getAllResponseHeaders());
+                        if(xhr.getAllResponseHeaders().indexOf("jwtchallenge: expired") > 0)
+                        {
+                            RefreshToken($("#autoRefreshToken"));
+                        }
+                    }
+                });
+            });
+
+             $("#refreshToken").on("click", function () {
+                $.ajax({
+                    url: "/Token/RefreshToken",
+                    type: "post",
+                    data: { "refreshToken": localStorage["refreshToken"] },
+                    beforeSend:function(XHR)
+                    {
+                        XHR.setRequestHeader("Authorization","Bearer " + localStorage["refreshToken"]);
+                    },
+                    success: function (data) {
+                        if (data.data.token) {
+                            localStorage["token"] = data.data.token;
+                            localStorage["refreshToken"] = data.data.refreshToken;
+                        }
+                    }
+                });
+            });
+
+        });
+
+        function RefreshToken(callback)
+        {
+            $.ajax({
+                    url: "/Token/RefreshToken",
+                    type: "post",
+                    data: { "refreshToken": localStorage["refreshToken"] },
+                    beforeSend:function(XHR)
+                    {
+                        XHR.setRequestHeader("Authorization","Bearer " + localStorage["refreshToken"]);
+                    },
+                    success: function (data) {
+                        if (data.data.token) {
+                            localStorage["token"] = data.data.token;
+                            localStorage["refreshToken"] = data.data.refreshToken;
+                            callback.trigger("click");
+                        }
+                    }
+                });
+        
+        }
+    </script>
+    
+}
